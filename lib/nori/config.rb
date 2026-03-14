@@ -7,7 +7,7 @@ module Nori
 
     # @param base_url [String] Nori API base URL
     # @param environment [String] Environment key (e.g. "production")
-    # @param api_key [String] Bearer token for authentication
+    # @param api_key [String] Environment API key for evaluate/stream requests
     # @param timeout [Numeric] HTTP timeout in seconds
     # @param cache_ttl [Integer] Cache TTL in seconds
     # @param fallback_mode [Symbol] :fail_closed or :fail_open

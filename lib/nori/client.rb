@@ -41,6 +41,8 @@ module Nori
     private
 
     def evaluate(key, context)
+      raise Error.new("API key is required") if @config.api_key.empty?
+
       last_error = nil
 
       @config.retry_count.times do |attempt|
@@ -55,7 +57,7 @@ module Nori
 
           request = Net::HTTP::Post.new(uri.path)
           request["Content-Type"] = "application/json"
-          request["Authorization"] = "Bearer #{@config.api_key}" unless @config.api_key.empty?
+          request["X-API-Key"] = @config.api_key
 
           request.body = JSON.generate({
             flag_key: key,
@@ -66,24 +68,41 @@ module Nori
           response = http.request(request)
 
           unless response.is_a?(Net::HTTPSuccess)
-            last_error = "unexpected status #{response.code}"
+            last_error = build_api_error(response)
+            raise last_error unless should_retry?(response.code.to_i)
             next
           end
 
           body = JSON.parse(response.body)
           return body["value"] == true
+        rescue Error
+          raise
         rescue StandardError => e
           last_error = e
         end
       end
 
-      raise "nori-sdk: all retries failed: #{last_error}"
+      raise Error.new("all retries failed: #{last_error}")
     end
 
     def build_cache_key(key, context)
-      cache_key = "#{key}:#{@config.environment}"
-      cache_key += ":#{context['user_id']}" if context.key?("user_id")
-      cache_key
+      serialized_context = context.sort.map { |context_key, value| "#{context_key}=#{value}" }
+      ([key, @config.environment] + serialized_context).join(":")
+    end
+
+    def should_retry?(status_code)
+      status_code == 429 || status_code >= 500
+    end
+
+    def build_api_error(response)
+      body = {}
+      body = JSON.parse(response.body) unless response.body.to_s.empty?
+
+      Error.new(
+        body["message"] || "unexpected status #{response.code}",
+        status_code: response.code.to_i,
+        error_code: body["code"]
+      )
     end
   end
 end
