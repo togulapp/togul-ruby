@@ -1,19 +1,19 @@
-# Nori Ruby SDK
+# Togul Ruby SDK
 
-Ruby client for evaluating Nori feature flags with local TTL caching and fallback behavior.
+Ruby client for evaluating Togul feature flags with local TTL caching and fallback behavior.
 
 ## Install
 
 ```bash
-gem install nori-flags
+gem install togul-flags
 ```
 
 ## Usage
 
 ```ruby
-require "nori"
+require "togul"
 
-client = Nori::Client.new(Nori::Config.new(
+client = Togul::Client.new(Togul::Config.new(
   base_url: "http://localhost:8080",
   environment: "production",
   api_key: "your-environment-api-key",

@@ -4,9 +4,9 @@ require "net/http"
 require "json"
 require "uri"
 
-module Nori
+module Togul
   class Client
-    # @param config [Nori::Config]
+    # @param config [Togul::Config]
     def initialize(config)
       @config = config
       @cache = Cache.new(ttl: config.cache_ttl)

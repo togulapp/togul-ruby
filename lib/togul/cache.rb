@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-module Nori
+module Togul
   class Cache
     def initialize(ttl:)
       @ttl = ttl

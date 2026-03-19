@@ -3,11 +3,11 @@
 require "minitest/autorun"
 require "json"
 require "net/http"
-require_relative "../lib/nori"
+require_relative "../lib/togul"
 
-class NoriClientTest < Minitest::Test
+class TogulClientTest < Minitest::Test
   def test_cache_key_includes_full_context
-    client = Nori::Client.new(Nori::Config.new(
+    client = Togul::Client.new(Togul::Config.new(
       base_url: "http://localhost:3000",
       environment: "production",
       api_key: "test-key"
@@ -20,7 +20,7 @@ class NoriClientTest < Minitest::Test
   end
 
   def test_enabled_uses_x_api_key_header
-    client = Nori::Client.new(Nori::Config.new(
+    client = Togul::Client.new(Togul::Config.new(
       base_url: "http://localhost:8080",
       environment: "production",
       api_key: "sdk-key"
@@ -45,7 +45,7 @@ class NoriClientTest < Minitest::Test
       }), success: false)
     http = FakeHTTP.new([response, response, response])
 
-    client = Nori::Client.new(Nori::Config.new(
+    client = Togul::Client.new(Togul::Config.new(
       base_url: "http://localhost:8080",
       environment: "production",
       api_key: "sdk-key",

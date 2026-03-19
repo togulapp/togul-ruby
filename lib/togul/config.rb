@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
-module Nori
+module Togul
   class Config
     attr_reader :base_url, :api_key, :environment, :timeout,
                 :cache_ttl, :fallback_mode, :retry_count
 
-    # @param base_url [String] Nori API base URL
+    # @param base_url [String] Togul API base URL
     # @param environment [String] Environment key (e.g. "production")
     # @param api_key [String] Environment API key for evaluate/stream requests
     # @param timeout [Numeric] HTTP timeout in seconds
