@@ -31,5 +31,12 @@ module Togul
     def flush
       @mutex.synchronize { @store.clear }
     end
+
+    def invalidate_flag(flag_key)
+      prefix = "#{flag_key}:"
+      @mutex.synchronize do
+        @store.delete_if { |key, _| key.start_with?(prefix) }
+      end
+    end
   end
 end
