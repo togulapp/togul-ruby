@@ -14,7 +14,6 @@ gem install togul-flags
 require "togul"
 
 client = Togul::Client.new(Togul::Config.new(
-  base_url: "http://localhost:8080",
   environment: "production",
   api_key: "your-environment-api-key",
   timeout: 5,
