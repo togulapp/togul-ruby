@@ -1,65 +1,62 @@
 # frozen_string_literal: true
 
-require "minitest/autorun"
-require "json"
-require "net/http"
-require_relative "../lib/togul"
+require 'minitest/autorun'
+require 'json'
+require 'net/http'
+require_relative '../lib/togul'
 
 class TogulClientTest < Minitest::Test
   def test_cache_key_includes_full_context
     client = Togul::Client.new(Togul::Config.new(
-      base_url: "http://localhost:3000",
-      environment: "production",
-      api_key: "test-key"
-    ))
+                                 environment: 'production',
+                                 api_key: 'test-key'
+                               ))
 
-    first = client.send(:build_cache_key, "flag-a", { "user_id" => "1", "country" => "TR" })
-    second = client.send(:build_cache_key, "flag-a", { "user_id" => "1", "country" => "US" })
+    first = client.send(:build_cache_key, 'flag-a', { 'user_id' => '1', 'country' => 'TR' })
+    second = client.send(:build_cache_key, 'flag-a', { 'user_id' => '1', 'country' => 'US' })
 
     refute_equal first, second
   end
 
   def test_enabled_uses_x_api_key_header
     client = Togul::Client.new(Togul::Config.new(
-      base_url: "http://localhost:8080",
-      environment: "production",
-      api_key: "sdk-key"
-    ))
+                                 environment: 'production',
+                                 api_key: 'sdk-key',
+                                 base_url: 'http://localhost:8080'
+                               ))
 
     response = FakeResponse.new(200, JSON.generate({ value: true }), success: true)
     http = FakeHTTP.new([response])
 
     Net::HTTP.stub(:new, http) do
-      assert_equal true, client.enabled?("flag-a", { "user_id" => "1" })
+      assert_equal true, client.enabled?('flag-a', { 'user_id' => '1' })
     end
 
     request = http.requests.first
-    assert_equal "sdk-key", request["X-API-Key"]
-    assert_nil request["Authorization"]
+    assert_equal 'sdk-key', request['X-API-Key']
+    assert_nil request['Authorization']
   end
 
   def test_client_error_is_not_retried
     response = FakeResponse.new(403, JSON.generate({
-        code: "evaluate.environment_forbidden",
-        message: "API key does not have access to this environment"
-      }), success: false)
+                                                     code: 'evaluate.environment_forbidden',
+                                                     message: 'API key does not have access to this environment'
+                                                   }), success: false)
     http = FakeHTTP.new([response, response, response])
 
     client = Togul::Client.new(Togul::Config.new(
-      base_url: "http://localhost:8080",
-      environment: "production",
-      api_key: "sdk-key",
-      retry_count: 3
-    ))
+                                 environment: 'production',
+                                 api_key: 'sdk-key',
+                                 retry_count: 3,
+                                 base_url: 'http://localhost:8080'
+                               ))
 
     Net::HTTP.stub(:new, http) do
-      assert_equal false, client.enabled?("flag-a")
+      assert_equal false, client.enabled?('flag-a')
     end
 
     assert_equal 1, http.requests.length
   end
-
-  private
 
   class FakeHTTP
     attr_reader :requests
