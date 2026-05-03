@@ -8,21 +8,25 @@ module Togul
       @mutex = Mutex.new
     end
 
-    # @return [Boolean, nil] cached value or nil on miss/expiry
+    # @return [EvaluateResult, nil] cached result or nil on miss/expiry/stale
     def get(key)
       @mutex.synchronize do
         entry = @store[key]
         return nil unless entry
         return nil if Time.now.to_f > entry[:expires_at]
 
-        entry[:value]
+        result = entry[:value]
+        # Treat entries with blank value_type as stale (legacy/invalid format).
+        return nil if result.value_type.to_s.empty?
+
+        result
       end
     end
 
-    def set(key, value)
+    def set(key, result)
       @mutex.synchronize do
         @store[key] = {
-          value: value,
+          value:      result,
           expires_at: Time.now.to_f + @ttl
         }
       end

@@ -19,19 +19,76 @@ module Togul
     # @param context [Hash<String, String>] User/request context
     # @return [Boolean] Whether the flag is enabled
     def enabled?(key, context = {})
-      cache_key = build_cache_key(key, context)
-
-      cached = @cache.get(cache_key)
-      return cached unless cached.nil?
-
-      value = evaluate(key, context)
-      @cache.set(cache_key, value)
-      value
+      evaluate_result(key, context).enabled?
     rescue StandardError
       case @config.fallback_mode
       when :fail_open then true
       else false
       end
+    end
+
+    # Evaluate a feature flag and return the full result with typed value accessors.
+    #
+    # @param key [String] Flag key
+    # @param context [Hash<String, String>] User/request context
+    # @return [Togul::EvaluateResult]
+    def evaluate_result(key, context = {})
+      cache_key = build_cache_key(key, context)
+
+      cached = @cache.get(cache_key)
+      return cached unless cached.nil?
+
+      result = evaluate(key, context)
+      @cache.set(cache_key, result)
+      result
+    end
+
+    # Evaluate a boolean flag.
+    #
+    # @param key [String] Flag key
+    # @param context [Hash<String, String>] User/request context
+    # @param fallback [Boolean] Value to return on error or type mismatch
+    # @return [Boolean]
+    def evaluate_bool(key, context = {}, fallback: false)
+      evaluate_result(key, context).bool_value(fallback)
+    rescue StandardError
+      fallback
+    end
+
+    # Evaluate a string flag.
+    #
+    # @param key [String] Flag key
+    # @param context [Hash<String, String>] User/request context
+    # @param fallback [String] Value to return on error or type mismatch
+    # @return [String]
+    def evaluate_string(key, context = {}, fallback: '')
+      evaluate_result(key, context).string_value(fallback)
+    rescue StandardError
+      fallback
+    end
+
+    # Evaluate a number flag.
+    #
+    # @param key [String] Flag key
+    # @param context [Hash<String, String>] User/request context
+    # @param fallback [Float] Value to return on error or type mismatch
+    # @return [Float]
+    def evaluate_number(key, context = {}, fallback: 0.0)
+      evaluate_result(key, context).number_value(fallback)
+    rescue StandardError
+      fallback
+    end
+
+    # Evaluate a JSON flag.
+    #
+    # @param key [String] Flag key
+    # @param context [Hash<String, String>] User/request context
+    # @param fallback [Object] Value to return on error or type mismatch
+    # @return [Object]
+    def evaluate_json(key, context = {}, fallback: nil)
+      evaluate_result(key, context).json_value(fallback)
+    rescue StandardError
+      fallback
     end
 
     # Clear all cached flag values.
@@ -91,7 +148,13 @@ module Togul
           end
 
           body = JSON.parse(response.body)
-          return body['value'] == true
+          return EvaluateResult.new(
+            flag_key:   body['flag_key'] || key,
+            enabled:    body['enabled'] == true,
+            value_type: body['value_type'].to_s,
+            raw_value:  body['value'],
+            reason:     body['reason'].to_s
+          )
         rescue Error
           raise
         rescue StandardError => e
