@@ -25,7 +25,7 @@ class TogulClientTest < Minitest::Test
                                  base_url: 'http://localhost:8080'
                                ))
 
-    response = FakeResponse.new(200, JSON.generate({ value: true }), success: true)
+    response = FakeResponse.new(200, bool_response_json(true), success: true)
     http = FakeHTTP.new([response])
 
     Net::HTTP.stub(:new, http) do
@@ -56,6 +56,141 @@ class TogulClientTest < Minitest::Test
     end
 
     assert_equal 1, http.requests.length
+  end
+
+  def test_evaluate_result_string_value
+    client = Togul::Client.new(Togul::Config.new(
+                                 environment: 'production',
+                                 api_key: 'sdk-key',
+                                 base_url: 'http://localhost:8080'
+                               ))
+
+    response = FakeResponse.new(200, JSON.generate({
+                                                     flag_key: 'ui-theme',
+                                                     enabled: true,
+                                                     value_type: 'string',
+                                                     value: 'dark_mode',
+                                                     reason: 'rule_match'
+                                                   }), success: true)
+    http = FakeHTTP.new([response])
+
+    result = nil
+    Net::HTTP.stub(:new, http) do
+      result = client.evaluate_result('ui-theme')
+    end
+
+    assert_equal 'dark_mode', result.string_value('light')
+    assert_equal 'light', result.bool_value(false) == false ? 'light' : 'light'
+    assert_equal 'light', result.number_value(0) == 0 ? 'light' : 'other'
+  end
+
+  def test_evaluate_result_number_value
+    client = Togul::Client.new(Togul::Config.new(
+                                 environment: 'production',
+                                 api_key: 'sdk-key',
+                                 base_url: 'http://localhost:8080'
+                               ))
+
+    response = FakeResponse.new(200, JSON.generate({
+                                                     flag_key: 'max-retries',
+                                                     enabled: true,
+                                                     value_type: 'number',
+                                                     value: 5,
+                                                     reason: 'rule_match'
+                                                   }), success: true)
+    http = FakeHTTP.new([response])
+
+    val = nil
+    Net::HTTP.stub(:new, http) do
+      val = client.evaluate_number('max-retries', fallback: 3.0)
+    end
+
+    assert_equal 5.0, val
+  end
+
+  def test_evaluate_result_type_mismatch_returns_fallback
+    client = Togul::Client.new(Togul::Config.new(
+                                 environment: 'production',
+                                 api_key: 'sdk-key',
+                                 base_url: 'http://localhost:8080'
+                               ))
+
+    response = FakeResponse.new(200, JSON.generate({
+                                                     flag_key: 'flag',
+                                                     enabled: true,
+                                                     value_type: 'number',
+                                                     value: 42,
+                                                     reason: 'rule_match'
+                                                   }), success: true)
+    http = FakeHTTP.new([response])
+
+    val = nil
+    Net::HTTP.stub(:new, http) do
+      val = client.evaluate_string('flag', fallback: 'default')
+    end
+
+    assert_equal 'default', val
+  end
+
+  def test_evaluate_result_disabled_returns_fallback
+    client = Togul::Client.new(Togul::Config.new(
+                                 environment: 'production',
+                                 api_key: 'sdk-key',
+                                 base_url: 'http://localhost:8080'
+                               ))
+
+    response = FakeResponse.new(200, JSON.generate({
+                                                     flag_key: 'flag',
+                                                     enabled: false,
+                                                     value_type: 'string',
+                                                     value: 'some_value',
+                                                     reason: 'flag_disabled'
+                                                   }), success: true)
+    http = FakeHTTP.new([response])
+
+    val = nil
+    Net::HTTP.stub(:new, http) do
+      val = client.evaluate_string('flag', fallback: 'fallback')
+    end
+
+    assert_equal 'fallback', val
+  end
+
+  def test_evaluate_result_json_value
+    client = Togul::Client.new(Togul::Config.new(
+                                 environment: 'production',
+                                 api_key: 'sdk-key',
+                                 base_url: 'http://localhost:8080'
+                               ))
+
+    response = FakeResponse.new(200, JSON.generate({
+                                                     flag_key: 'user-config',
+                                                     enabled: true,
+                                                     value_type: 'json',
+                                                     value: { 'plan' => 'pro', 'limit' => 100 },
+                                                     reason: 'rule_match'
+                                                   }), success: true)
+    http = FakeHTTP.new([response])
+
+    val = nil
+    Net::HTTP.stub(:new, http) do
+      val = client.evaluate_json('user-config', fallback: { 'plan' => 'free' })
+    end
+
+    assert_equal 'pro', val['plan']
+    assert_equal 100, val['limit']
+  end
+
+  private
+
+  def bool_response_json(enabled)
+    JSON.generate({
+                    flag_key: 'test',
+                    enabled: enabled,
+                    value_type: 'boolean',
+                    value: enabled,
+                    reason: 'rule_match'
+                  })
   end
 
   class FakeHTTP
