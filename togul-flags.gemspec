@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'togul-flags'
-  s.version     = '2.3.0'
+  s.version     = '2.4.0'
   s.summary     = 'Ruby SDK for Togul Feature Flag Service'
   s.description = 'Client library for evaluating feature flags from a Togul server with TTL caching, retry, and fallback support.'
   s.license     = 'MIT'
