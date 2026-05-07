@@ -5,10 +5,18 @@ Ruby client for evaluating Togul feature flags with local TTL caching and fallba
 ## Install
 
 ```bash
-gem install togul-flags
+gem install togul
+```
+
+Or in your Gemfile:
+
+```ruby
+gem 'togul', '~> 2.4'
 ```
 
 ## Usage
+
+### Boolean Flag
 
 ```ruby
 require "togul"
@@ -27,6 +35,24 @@ enabled = client.enabled?("new-dashboard", {
   "country" => "TR"
 })
 ```
+
+### Multi-Variant Flag
+
+Use `evaluate` to get typed values from flags with multiple variants:
+
+```ruby
+result = client.evaluate("checkout-theme", {
+  "user_id" => "user-123"
+})
+
+result.enabled?                     # => true
+result.string_value("default")      # => "dark"
+result.bool_value(false)            # => false (wrong type, returns fallback)
+result.number_value(0.0)            # => 0.0   (wrong type, returns fallback)
+result.json_value(nil)              # => nil   (wrong type, returns fallback)
+```
+
+`EvaluateResult` attributes: `flag_key`, `enabled`, `value_type`, `reason`
 
 ## Notes
 
