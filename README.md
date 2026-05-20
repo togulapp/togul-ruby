@@ -16,8 +16,6 @@ gem 'togul', '~> 2.4'
 
 ## Usage
 
-### Boolean Flag
-
 ```ruby
 require "togul"
 
@@ -30,29 +28,29 @@ client = Togul::Client.new(Togul::Config.new(
   retry_count: 2
 ))
 
-enabled = client.enabled?("new-dashboard", {
+result = client.evaluate("new-dashboard", {
   "user_id" => "user-123",
   "country" => "TR"
 })
+
+puts result.enabled?   # true
+puts result.value_type # "string"
+puts result.value      # "dark_mode"
+puts result.reason     # "rule_match"
 ```
 
-### Multi-Variant Flag
+## EvaluateResult
 
-Use `evaluate` to get typed values from flags with multiple variants:
+`evaluate` returns an `EvaluateResult` object:
 
 ```ruby
-result = client.evaluate("checkout-theme", {
-  "user_id" => "user-123"
-})
-
-result.enabled?                     # => true
-result.string_value("default")      # => "dark"
-result.bool_value(false)            # => false (wrong type, returns fallback)
-result.number_value(0.0)            # => 0.0   (wrong type, returns fallback)
-result.json_value(nil)              # => nil   (wrong type, returns fallback)
+result.flag_key    # String  — flag identifier
+result.enabled     # Boolean — whether the flag is on
+result.enabled?    # Boolean — alias for enabled
+result.value_type  # String  — "boolean" | "string" | "number" | "json"
+result.value       # mixed   — the resolved value
+result.reason      # String  — e.g. "rule_match", "default"
 ```
-
-`EvaluateResult` attributes: `flag_key`, `enabled`, `value_type`, `reason`
 
 ## Notes
 
