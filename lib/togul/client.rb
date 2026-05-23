@@ -39,14 +39,19 @@ module Togul
       @cache.invalidate_flag(key)
     end
 
-    # Start SSE stream for real-time cache invalidation.
-    def stream
+    # Start the SSE stream in a background thread for real-time cache invalidation.
+    # Subsequent calls are no-ops; the thread runs until the process exits.
+    def start_stream
       @stream_client ||= StreamClient.new(@config, @cache)
+      @stream_thread ||= Thread.new { @stream_client.connect }
+      nil
     end
 
     # Register a listener for cache invalidation events.
+    # Call start_stream separately to begin receiving events.
     def on_cache_invalidated(&block)
-      stream.on_cache_invalidated(&block)
+      @stream_client ||= StreamClient.new(@config, @cache)
+      @stream_client.on_cache_invalidated(&block)
     end
 
     private

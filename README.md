@@ -24,7 +24,6 @@ client = Togul::Client.new(Togul::Config.new(
   api_key: "your-environment-api-key",
   timeout: 5,
   cache_ttl: 30,
-  fallback_mode: :fail_closed,
   retry_count: 2
 ))
 
@@ -51,6 +50,16 @@ result.value_type  # String  — "boolean" | "string" | "number" | "json"
 result.value       # mixed   — the resolved value
 result.reason      # String  — e.g. "rule_match", "default"
 ```
+
+## Streaming
+
+```ruby
+# Register a listener, then start the background SSE thread.
+client.on_cache_invalidated { |flag_key| puts "invalidated: #{flag_key}" }
+client.start_stream
+```
+
+`start_stream` spawns a background thread that connects to `GET /api/v1/stream` and invalidates the local cache when flag-change events arrive. It reconnects automatically with exponential backoff on transient failures, and stops only on `401`/`403`.
 
 ## Notes
 

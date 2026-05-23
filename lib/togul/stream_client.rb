@@ -37,6 +37,8 @@ module Togul
       uri = URI("#{@config.base_url}/api/v1/stream")
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = uri.scheme == 'https'
+      http.open_timeout = @config.timeout
+      http.read_timeout = nil  # SSE is long-lived; no read deadline
 
       request = Net::HTTP::Get.new(uri.path)
       request['Accept'] = 'text/event-stream'
