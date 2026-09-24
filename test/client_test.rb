@@ -275,4 +275,44 @@ class TogulClientTest < Minitest::Test
     client = Togul::Client.new(Togul::Config.new(environment: 'staging', api_key: ''))
     assert_raises(Togul::Error) { client.evaluate('flag') }
   end
+
+  # ── Invalidation listeners ────────────────────────────────────────────────
+
+  def test_stream_client_is_loaded_by_the_gem_entry_point
+    # Regression: lib/togul.rb did not require stream_client.rb, so
+    # start_stream and on_cache_invalidated raised NameError.
+    assert defined?(Togul::StreamClient)
+  end
+
+  def test_manual_invalidation_notifies_listeners
+    client = Togul::Client.new(make_config)
+    seen = []
+    client.on_cache_invalidated { |flag_key| seen << flag_key }
+
+    client.invalidate_flag('flag-a')
+    client.invalidate_cache
+
+    assert_equal ['flag-a', ''], seen
+  end
+
+  def test_stream_events_notify_client_listeners
+    client = Togul::Client.new(make_config)
+    seen = []
+    client.on_cache_invalidated { |flag_key| seen << flag_key }
+
+    # Keep the stream thread from opening a real connection.
+    original_connect = Togul::StreamClient.instance_method(:connect)
+    Togul::StreamClient.define_method(:connect) { nil }
+    begin
+      client.start_stream
+      client.instance_variable_get(:@stream_thread).join
+    ensure
+      Togul::StreamClient.define_method(:connect, original_connect)
+    end
+    stream = client.instance_variable_get(:@stream_client)
+    stream.send(:handle_event, { 'type' => 'flag.updated', 'flag_key' => 'flag-a' })
+    stream.send(:handle_event, { 'type' => 'segment.updated' })
+
+    assert_equal ['flag-a', ''], seen
+  end
 end

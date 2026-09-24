@@ -11,6 +11,7 @@ module Togul
       @config = config
       @cache = Cache.new(ttl: config.cache_ttl)
       @stream_client = nil
+      @listeners = []
     end
 
     # Evaluate a feature flag and return the result mirroring the API response.
@@ -32,26 +33,34 @@ module Togul
     # Clear all cached flag values.
     def invalidate_cache
       @cache.flush
+      notify_listeners('')
     end
 
     # Clear a specific flag from cache.
     def invalidate_flag(key)
       @cache.invalidate_flag(key)
+      notify_listeners(key)
     end
 
     # Start the SSE stream in a background thread for real-time cache invalidation.
     # Subsequent calls are no-ops; the thread runs until the process exits.
     def start_stream
-      @stream_client ||= StreamClient.new(@config, @cache)
+      unless @stream_client
+        @stream_client = StreamClient.new(@config, @cache)
+        # The stream invalidates the cache itself; forward so listeners fire
+        # for stream events exactly as for manual invalidation.
+        @stream_client.on_cache_invalidated { |flag_key| notify_listeners(flag_key) }
+      end
       @stream_thread ||= Thread.new { @stream_client.connect }
       nil
     end
 
-    # Register a listener for cache invalidation events.
-    # Call start_stream separately to begin receiving events.
+    # Register a listener for cache invalidation, called with the flag key (or
+    # "" when the whole cache was cleared) for both manual invalidation and
+    # stream events. Call start_stream separately to receive stream events.
     def on_cache_invalidated(&block)
-      @stream_client ||= StreamClient.new(@config, @cache)
-      @stream_client.on_cache_invalidated(&block)
+      @listeners << block
+      nil
     end
 
     private
@@ -106,6 +115,10 @@ module Togul
       end
 
       raise Error.new("all retries failed: #{last_error}")
+    end
+
+    def notify_listeners(flag_key)
+      @listeners.each { |listener| listener.call(flag_key) }
     end
 
     def build_cache_key(key, context)
