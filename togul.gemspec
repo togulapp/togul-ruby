@@ -13,4 +13,8 @@ Gem::Specification.new do |s|
 
   s.add_dependency 'json'
   s.add_dependency 'net-http'
+
+  # Optional at runtime: only `require "togul/open_feature"` needs it.
+  s.add_development_dependency 'openfeature-sdk', '>= 0.5'
+  s.add_development_dependency 'minitest', '>= 5.0'
 end
