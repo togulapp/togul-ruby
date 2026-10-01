@@ -7,7 +7,7 @@ Gem::Specification.new do |s|
   s.authors     = ['Togul']
   s.homepage    = 'https://github.com/togulapp/togul-ruby'
   s.metadata    = { 'source_code_uri' => 'https://github.com/togulapp/togul-ruby' }
-  s.files       = Dir['lib/**/*.rb']
+  s.files       = Dir['lib/**/*.rb'] + ['LICENSE']
   s.require_paths = ['lib']
   s.required_ruby_version = '>= 3.0'
 
